@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+{% block title %}Budget · Factory Platform{% endblock %}
+{% block crumbs %}
+  <span>Finance</span>
+  <span class="sep">/</span>
+  <span class="here">Budget · April 2026</span>
+{% endblock %}
+
+{% block content %}
+<div class="page">
+  <div class="page-head">
+    <div>
+      <h1 class="page-title">Budget overview</h1>
+      <p class="page-sub">Planned operational spend by cost center, sourced from <span class="mono">finance.budget_monthly</span>.</p>
+    </div>
+    <div class="page-head-actions">
+      <button class="btn ghost"><span id="ic-refresh"></span>Reload</button>
+      <button class="btn"><span id="ic-download"></span>Export CSV</button>
+    </div>
+  </div>
+
+  <!-- KPI ROW -->
+  {% set total_budget = data | sum(attribute='budget_amount_brl') %}
+  <div class="kpi-grid cols-3">
+    <div class="kpi">
+      <div class="kpi-label">Total budget</div>
+      <div class="kpi-value">
+        <span class="currency">R$</span>{{ total_budget | br_int }}
+      </div>
+      <div class="kpi-row">
+        <span class="kpi-delta">Sum of planned allocations</span>
+      </div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Cost centers tracked</div>
+      <div class="kpi-value">{{ data | length }}</div>
+      <div class="kpi-row">
+        <span class="kpi-delta">All allocations mapped</span>
+      </div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Reporting month</div>
+      <div class="kpi-value mono">202604</div>
+      <div class="kpi-row">
+        <span class="kpi-delta">April 2026 · BRL</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- TABLE -->
+  <div class="table-wrap">
+    <div class="table-toolbar">
+      <div style="font-size:12.5px;color:var(--text-muted);">
+        <span class="mono" style="color:var(--text);">finance.budget_monthly</span>
+        <span class="faint" style="margin-left:8px;">·</span>
+        <span style="margin-left:8px;">{{ data | length }} rows · refreshed <span class="mono">{{ last_updated | default('—') }}</span></span>
+      </div>
+      <span class="tb-counter">All <strong>{{ data | length }}</strong> cost centers</span>
+    </div>
+    <table class="data">
+      <thead>
+        <tr>
+          <th>Cost center</th>
+          <th class="num">Budget BRL</th>
+          <th class="num">Actual BRL</th>
+          <th class="num">Variance BRL</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in data | sort(attribute='budget_amount_brl', reverse=True) %}
+        <tr>
+          <td>
+            <span class="id">{{ row.cost_center }}</span>
+            <span class="sub">{{ row.cost_center_label }}</span>
+          </td>
+          <td class="num">{{ row.budget_amount_brl | br }}</td>
+          <td class="num faint">—</td>
+          <td class="num faint">—</td>
+          <td><span class="badge muted">Data unavailable</span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr style="border-top:2px solid var(--border-2);">
+          <td style="padding:12px 14px;font-weight:600;color:var(--text);">Total</td>
+          <td class="num" style="padding:12px 14px;font-weight:600;color:var(--text);">R$ {{ total_budget | br }}</td>
+          <td class="num faint" style="padding:12px 14px;">—</td>
+          <td class="num faint" style="padding:12px 14px;">—</td>
+          <td style="padding:12px 14px;"><span class="badge muted">{{ data | length }} rows · partial data</span></td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+
+  <!-- HONEST NOTICE -->
+  <div class="notice">
+    <span id="ic-warn"></span>
+    <div>
+      <strong>Actual spend data unavailable.</strong>
+      Source transactions in <span class="mono">finance.transactions_raw</span> did not include cost center mapping for month <span class="mono">202604</span>; the join produced <span class="mono">NULL</span> on the right side. Budget figures above reflect planned allocation only. A follow-up DAG (<span class="mono">backfill_cc_mapping</span>) is queued to enrich historical transactions once the mapping table lands.
+    </div>
+  </div>
+
+  <!-- CHART -->
+  <div class="panel" style="margin-top:22px;">
+    <div class="panel-head">
+      <div>
+        <div class="panel-title">Planned allocation by cost center</div>
+        <div class="panel-sub">BRL · descending order · month 202604</div>
+      </div>
+      <div class="panel-tools">
+        <div class="tab-group">
+          <button class="on">Bar</button>
+          <button disabled style="opacity:0.4;cursor:not-allowed;">Trend (needs actuals)</button>
+        </div>
+      </div>
+    </div>
+    <div class="chart-wrap tall" style="height:340px;">
+      <canvas id="chart-budget"></canvas>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById("ic-refresh").innerHTML = window.ICONS.refresh;
+document.getElementById("ic-download").innerHTML = window.ICONS.download;
+document.getElementById("ic-warn").innerHTML = window.ICONS.warn;
+
+Chart.defaults.color = "#8B98A5";
+Chart.defaults.font.family = "Inter, system-ui, sans-serif";
+Chart.defaults.font.size = 11.5;
+Chart.defaults.borderColor = "#262E38";
+
+var budgetData = {{ data | tojson }};
+var sorted = budgetData.slice().sort(function(a, b) { return b.budget_amount_brl - a.budget_amount_brl; });
+
+new Chart(document.getElementById("chart-budget"), {
+  type: "bar",
+  data: {
+    labels: sorted.map(function(r) { return r.cost_center_label; }),
+    datasets: [{
+      data: sorted.map(function(r) { return r.budget_amount_brl; }),
+      backgroundColor: "#0EA5E9",
+      hoverBackgroundColor: "#38BDF8",
+      borderRadius: 3,
+      barThickness: 18,
+    }]
+  },
+  options: {
+    indexAxis: "y",
+    maintainAspectRatio: false,
+    responsive: true,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: "#20262E", borderColor: "#323B47", borderWidth: 1,
+        titleColor: "#E7EDF3", bodyColor: "#E7EDF3", padding: 10, cornerRadius: 4,
+        bodyFont: { family: "JetBrains Mono", size: 12 },
+        callbacks: { label: function(ctx) { return " R$ " + ctx.parsed.x.toLocaleString("pt-BR", {minimumFractionDigits:2}); } }
+      }
+    },
+    scales: {
+      x: { grid: { color: "#1F2730", drawBorder: false }, ticks: { font: { family: "JetBrains Mono" }, callback: function(v) { return "R$" + (v/1000).toFixed(0) + "k"; } } },
+      y: { grid: { display: false, drawBorder: false }, ticks: { font: { size: 11.5 } } }
+    }
+  }
+});
+</script>
+{% endblock %}

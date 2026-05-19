@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+{% block title %}Equipment · Factory Platform{% endblock %}
+{% block crumbs %}
+  <span>Operations</span>
+  <span class="sep">/</span>
+  <span class="here">Equipment Status</span>
+{% endblock %}
+
+{% block content %}
+<div class="page">
+  <div class="page-head">
+    <div>
+      <h1 class="page-title">Equipment status</h1>
+      <p class="page-sub">Preventive maintenance schedule across {{ data | length }} machines on 3 production lines.</p>
+    </div>
+    <div class="page-head-actions">
+      <button class="btn ghost"><span id="ic-refresh"></span>Sync CMMS</button>
+      <button class="btn"><span id="ic-download"></span>Export CSV</button>
+    </div>
+  </div>
+
+  <!-- KPI ROW -->
+  {% set eq_due_soon = data | selectattr('status', 'equalto', 'DUE_SOON') | list | length %}
+  {% set eq_overdue  = data | selectattr('status', 'equalto', 'OVERDUE')  | list | length %}
+  <div class="kpi-grid cols-3">
+    <div class="kpi">
+      <div class="kpi-label">Total machines</div>
+      <div class="kpi-value">{{ data | length }}</div>
+      <div class="kpi-row">
+        <span class="kpi-delta">Producao · Embalagem · Logistica · Infraestrutura</span>
+      </div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Due soon</div>
+      <div class="kpi-value" style="color:var(--warn)">{{ eq_due_soon }}</div>
+      <div class="kpi-row">
+        <span class="badge warn">&#8804; 7 days</span>
+        <span class="kpi-delta">{{ "%.0f" | format(eq_due_soon / (data | length) * 100) }}% of fleet</span>
+      </div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Overdue</div>
+      <div class="kpi-value" style="color:var(--bad)">{{ eq_overdue }}</div>
+      <div class="kpi-row">
+        <span class="badge bad">SLA BREACH</span>
+        <span class="kpi-delta">{{ "%.0f" | format(eq_overdue / (data | length) * 100) }}% of fleet</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- TABLE -->
+  <div class="table-wrap">
+    <div class="table-toolbar">
+      <div class="search">
+        <span id="ic-search"></span>
+        <input type="text" id="filter-q" placeholder="Search machine ID...">
+      </div>
+      <select id="filter-type">
+        <option value="">All types</option>
+        <option>Producao</option>
+        <option>Embalagem</option>
+        <option>Logistica</option>
+        <option>Infraestrutura</option>
+      </select>
+      <select id="filter-line">
+        <option value="">All lines</option>
+        <option>trufa</option>
+        <option>pao_de_mel</option>
+        <option>both</option>
+      </select>
+      <select id="filter-status">
+        <option value="">All status</option>
+        <option>OK</option>
+        <option>DUE_SOON</option>
+        <option>OVERDUE</option>
+      </select>
+      <span class="tb-counter">Showing <strong id="ct-shown">0</strong> of <strong id="ct-total">{{ data | length }}</strong></span>
+    </div>
+    <table class="data">
+      <thead>
+        <tr>
+          <th>Machine ID</th>
+          <th>Type</th>
+          <th>Production line</th>
+          <th>Last maintenance</th>
+          <th>Next due</th>
+          <th class="num">Days until due</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody id="eq-body"></tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById("ic-refresh").innerHTML = window.ICONS.refresh;
+document.getElementById("ic-download").innerHTML = window.ICONS.download;
+document.getElementById("ic-search").innerHTML = window.ICONS.search;
+
+var EQUIPMENT = {{ data | tojson }};
+
+function fmtDate(iso) {
+  var parts = iso.split("-");
+  var months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  return parseInt(parts[2],10) + " " + months[parseInt(parts[1],10)-1] + " " + parts[0];
+}
+
+function render() {
+  var q = document.getElementById("filter-q").value.trim().toLowerCase();
+  var t = document.getElementById("filter-type").value;
+  var l = document.getElementById("filter-line").value;
+  var s = document.getElementById("filter-status").value;
+
+  var rows = EQUIPMENT.filter(function(m) {
+    return (!q || m.machine_id.toLowerCase().includes(q)) &&
+           (!t || m.machine_type === t) &&
+           (!l || m.production_line === l) &&
+           (!s || m.status === s);
+  });
+
+  var order = { OVERDUE: 0, DUE_SOON: 1, OK: 2 };
+  rows.sort(function(a, b) {
+    return (order[a.status] - order[b.status]) || (a.days_until_due - b.days_until_due);
+  });
+
+  document.getElementById("ct-shown").textContent = rows.length;
+
+  document.getElementById("eq-body").innerHTML = rows.map(function(m) {
+    var d = m.days_until_due;
+    var dCls = d < 0 ? "bad" : (d <= 7 ? "warn" : "ok");
+    var dDisplay = d < 0 ? (d + "d") : (d === 0 ? "today" : ("+" + d + "d"));
+    var badge = m.status === "OVERDUE"
+      ? '<span class="badge bad">OVERDUE</span>'
+      : m.status === "DUE_SOON"
+        ? '<span class="badge warn">DUE_SOON</span>'
+        : '<span class="badge ok">OK</span>';
+    var rowCls = m.status === "OVERDUE" ? "row-bad" : "";
+    return '<tr class="' + rowCls + '">' +
+      '<td><span class="id">' + m.machine_id + '</span></td>' +
+      '<td>' + m.machine_type + '</td>' +
+      '<td><span class="mono" style="color:var(--text-muted);">' + m.production_line + '</span></td>' +
+      '<td class="num" style="color:var(--text-muted);">' + fmtDate(m.last_maintenance) + '</td>' +
+      '<td class="num">' + fmtDate(m.next_due) + '</td>' +
+      '<td class="num"><span class="days ' + dCls + '">' + dDisplay + '</span></td>' +
+      '<td>' + badge + '</td>' +
+      '</tr>';
+  }).join("") || '<tr><td colspan="7" style="text-align:center;padding:32px;color:var(--text-faint);">No machines match the current filters.</td></tr>';
+}
+
+["filter-q","filter-type","filter-line","filter-status"].forEach(function(id) {
+  document.getElementById(id).addEventListener("input", render);
+});
+render();
+</script>
+{% endblock %}

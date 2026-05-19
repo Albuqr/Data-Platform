@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=1280">
+  <title>{% block title %}Factory Platform{% endblock %}</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="sb-brand">
+      <div class="sb-logo">F</div>
+      <div class="sb-brand-text">
+        <div class="sb-brand-name">Factory Platform</div>
+        <div class="sb-brand-env">prod · sa-east-1</div>
+      </div>
+    </div>
+
+    <div class="sb-section">Workspace</div>
+    <nav class="sb-nav">
+      <a href="{{ url_for('index') }}" class="sb-link {% if request.endpoint == 'index' %}active{% endif %}">
+        <svg class="sb-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.2"/><rect x="14" y="3" width="7" height="5" rx="1.2"/><rect x="14" y="12" width="7" height="9" rx="1.2"/><rect x="3" y="16" width="7" height="5" rx="1.2"/></svg>
+        <span>Overview</span>
+      </a>
+      <a href="{{ url_for('equipment') }}" class="sb-link {% if request.endpoint == 'equipment' %}active{% endif %}">
+        <svg class="sb-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 010 1.4l-1.4 1.4 2.6 2.6 1.4-1.4a1 1 0 011.4 0l1 1a1 1 0 010 1.4l-1.4 1.4a3 3 0 01-4.2 0L9.7 9.5a3 3 0 010-4.2L11.1 4a1 1 0 011.4 0l1 1a1 1 0 010 1.3z"/><path d="M9 14l-5 5a2.1 2.1 0 003 3l5-5"/></svg>
+        <span>Equipment</span>
+      </a>
+      <a href="{{ url_for('budget') }}" class="sb-link {% if request.endpoint == 'budget' %}active{% endif %}">
+        <svg class="sb-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="13" rx="1.6"/><path d="M3 10h18"/><path d="M7 15h3"/><circle cx="17" cy="15" r="1.2"/></svg>
+        <span>Budget</span>
+      </a>
+      <a href="{{ url_for('alerts') }}" class="sb-link {% if request.endpoint == 'alerts' %}active{% endif %}">
+        <svg class="sb-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l10 18H2L12 2z"/><path d="M12 9v5"/><circle cx="12" cy="17.2" r="0.6" fill="currentColor"/></svg>
+        <span>Alerts</span>
+        {% if alerts_unreviewed and alerts_unreviewed > 0 %}
+          <span class="badge">{{ alerts_unreviewed }}</span>
+        {% endif %}
+      </a>
+    </nav>
+
+    <div class="sb-foot">
+      <div class="sb-foot-row">
+        <span class="sb-status-dot"></span>
+        <span>All pipelines healthy</span>
+      </div>
+      <a class="sb-author" href="https://github.com/Albuqr/" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:7px;color:var(--text-muted);text-decoration:none;">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.58.11.79-.25.79-.56v-2c-3.2.7-3.88-1.36-3.88-1.36-.52-1.32-1.27-1.67-1.27-1.67-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.18 1.76 1.18 1.02 1.76 2.69 1.25 3.35.95.1-.74.4-1.25.73-1.54-2.56-.29-5.25-1.28-5.25-5.71 0-1.26.45-2.29 1.19-3.1-.12-.29-.52-1.47.11-3.06 0 0 .97-.31 3.18 1.18.92-.26 1.91-.39 2.89-.39s1.97.13 2.89.39c2.21-1.49 3.18-1.18 3.18-1.18.63 1.59.23 2.77.11 3.06.74.81 1.19 1.84 1.19 3.1 0 4.44-2.7 5.41-5.27 5.7.41.36.78 1.06.78 2.14v3.17c0 .31.21.68.8.56C20.21 21.39 23.5 17.08 23.5 12 23.5 5.65 18.35.5 12 .5z"/></svg>
+        <span>github.com/Albuqr</span>
+      </a>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div class="tb-crumbs">
+        <span>Factory Data</span>
+        <span class="sep">/</span>
+        {% block crumbs %}<span class="here">Overview</span>{% endblock %}
+      </div>
+      <div class="tb-spacer"></div>
+      <div class="tb-meta">
+        <span><span class="label">Env</span><span class="mono">prod</span></span>
+        <span><span class="label">Run</span><span class="mono">dbt_{{ run_id | default('202604_18') }}</span></span>
+        <span class="tb-pill live">live</span>
+      </div>
+    </div>
+
+    {% block content %}{% endblock %}
+
+    <footer class="footer">
+      <div class="left">
+        <span>Factory Data Platform</span>
+        <span class="sep">|</span>
+        <span>Last updated: <span class="mono">{{ last_updated | default('—') }}</span></span>
+      </div>
+      <div class="right">
+        <span class="mono faint">v2.4.1 · build f8a3c2e</span>
+      </div>
+    </footer>
+  </main>
+</div>
+
+<div class="toast-host" id="toast-host"></div>
+
+<script>
+window.toast = function(title, sub, kind) {
+  kind = kind || 'ok';
+  var host = document.getElementById('toast-host');
+  if (!host) return;
+  var el = document.createElement('div');
+  el.className = 'toast ' + kind;
+  el.innerHTML = '<div>' + title + '</div>' + (sub ? '<div class="sub">' + sub + '</div>' : '');
+  host.appendChild(el);
+  setTimeout(function() {
+    el.style.transition = 'opacity 0.3s, transform 0.3s';
+    el.style.opacity = '0';
+    el.style.transform = 'translateY(4px)';
+    setTimeout(function() { el.remove(); }, 300);
+  }, 2600);
+};
+
+window.ICONS = {
+  search:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>',
+  download: '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v12"/><path d="M7 11l5 5 5-5"/><path d="M5 20h14"/></svg>',
+  refresh:  '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0115.5-6.3L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 01-15.5 6.3L3 16"/><path d="M3 21v-5h5"/></svg>',
+  copy:     '<svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="1.5"/><path d="M5 15V5a1 1 0 011-1h10"/></svg>',
+  warn:     '<svg class="ic" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l10 18H2L12 3z"/><path d="M12 10v5"/><circle cx="12" cy="18" r="0.6" fill="currentColor"/></svg>',
+  check:    '<svg class="ic" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l4 4 10-10"/></svg>',
+  flag:     '<svg class="ic" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V4"/><path d="M5 4h11l-2 3 2 3H5"/></svg>',
+};
+</script>
+
+{% block scripts %}{% endblock %}
+</body>
+</html>
