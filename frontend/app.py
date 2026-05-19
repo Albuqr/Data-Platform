@@ -32,7 +32,50 @@ def br_filter(n):
 # ---------- Helpers ----------
 
 def _get(path):
-    return requests.get(PLATFORM_API + path, timeout=10).json()["data"]
+    result = requests.get(PLATFORM_API + path, timeout=10).json()
+    return result["data"] if isinstance(result, dict) else result
+
+
+def _remap_alert(a):
+    deviation = a.get("deviation", 1) or 1
+    reviewed  = a.get("reviewed", 0)
+    return {
+        "transaction_id": a.get("transaction_id"),
+        "cost_center":    a.get("cost_center"),
+        "amount_brl":     a.get("amount"),
+        "mean_amount_brl": a.get("mean"),
+        "deviation_pct":  round((deviation - 1) * 100, 1),
+        "detected_at":    a.get("timestamp"),
+        "status":         "pending" if reviewed == 0 else "reviewed",
+        "resolution":     None,
+    }
+
+
+def _remap_equipment(m):
+    maint_date = m.get("maintenance_date", "") or ""
+    if "T" in maint_date:
+        maint_date = maint_date.split("T")[0]
+    return {
+        "machine_id":      str(m.get("item_id", "")),
+        "machine_type":    m.get("machine_type"),
+        "production_line": m.get("production_line"),
+        "last_maintenance": maint_date,
+        "next_due":        m.get("next_due_date"),
+        "days_until_due":  m.get("days_until_due"),
+        "status":          m.get("maintenance_status"),
+    }
+
+
+def _remap_budget(b):
+    return {
+        "cost_center":       b.get("cost_center"),
+        "cost_center_label": b.get("cost_center"),   # API has no separate label
+        "budget_amount_brl": b.get("budget_amount_brl"),
+        "actual_amount_brl": None,
+        "variance_brl":      b.get("variance_brl"),
+        "status":            b.get("status_flag"),
+        "month":             b.get("month_key"),
+    }
 
 
 def _alerts_unreviewed(alerts_data):
@@ -51,9 +94,9 @@ def _run_id():
 
 @app.route("/")
 def index():
-    equipment = _get("/api/equipment_status")
-    budget    = _get("/api/budget-variance")
-    alerts    = _get("/api/get_alerts")
+    equipment = [_remap_equipment(m) for m in _get("/api/equipment_status")]
+    budget    = [_remap_budget(b)    for b in _get("/api/budget-variance")]
+    alerts    = [_remap_alert(a)     for a in _get("/api/get_alerts")]
 
     eq_ok       = sum(1 for m in equipment if m["status"] == "OK")
     eq_due_soon = sum(1 for m in equipment if m["status"] == "DUE_SOON")
@@ -66,7 +109,7 @@ def index():
     )[:8]
 
     top_alerts = sorted(
-        [a for a in alerts if a.get("status") == "pending"],
+        [a for a in alerts if a["status"] == "pending"],
         key=lambda a: -a["deviation_pct"],
     )[:4]
 
@@ -88,8 +131,8 @@ def index():
 
 @app.route("/equipment")
 def equipment():
-    data   = _get("/api/equipment_status")
-    alerts = _get("/api/get_alerts")
+    data   = [_remap_equipment(m) for m in _get("/api/equipment_status")]
+    alerts = [_remap_alert(a)     for a in _get("/api/get_alerts")]
     return render_template(
         "equipment.html",
         data=data,
@@ -101,8 +144,8 @@ def equipment():
 
 @app.route("/budget")
 def budget():
-    data   = _get("/api/budget-variance")
-    alerts = _get("/api/get_alerts")
+    data   = [_remap_budget(b) for b in _get("/api/budget-variance")]
+    alerts = [_remap_alert(a)  for a in _get("/api/get_alerts")]
     return render_template(
         "budget.html",
         data=data,
@@ -114,7 +157,7 @@ def budget():
 
 @app.route("/alerts")
 def alerts():
-    data = _get("/api/get_alerts")
+    data = [_remap_alert(a) for a in _get("/api/get_alerts")]
     return render_template(
         "alerts.html",
         data=data,
