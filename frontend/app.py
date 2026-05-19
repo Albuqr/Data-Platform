@@ -10,13 +10,22 @@ app = Flask(__name__)
 PLATFORM_API = os.environ.get("PLATFORM_API_URL", "")
 
 
+# ---------- Security headers ----------
+
+@app.after_request
+def set_security_headers(response):
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    return response
+
+
 # ---------- Template filters ----------
 
 @app.template_filter("br_int")
 def br_int_filter(n):
     if n is None:
         return "—"
-    # Format with period as thousands separator (pt-BR style)
     return f"{int(n):,}".replace(",", ".")
 
 
@@ -24,16 +33,27 @@ def br_int_filter(n):
 def br_filter(n):
     if n is None:
         return "—"
-    # Format as pt-BR: periods for thousands, comma for decimal
     formatted = f"{n:,.2f}"
     return formatted.replace(",", "X").replace(".", ",").replace("X", ".")
 
 
 # ---------- Helpers ----------
 
+class UpstreamError(Exception):
+    pass
+
+
 def _get(path):
-    result = requests.get(PLATFORM_API + path, timeout=10).json()
-    return result["data"] if isinstance(result, dict) else result
+    try:
+        result = requests.get(PLATFORM_API + path, timeout=10).json()
+        return result["data"] if isinstance(result, dict) else result
+    except Exception:
+        raise UpstreamError(path)
+
+
+@app.errorhandler(UpstreamError)
+def handle_upstream_error(e):
+    return jsonify({"error": "Upstream service unavailable"}), 502
 
 
 def _remap_alert(a):
@@ -69,7 +89,7 @@ def _remap_equipment(m):
 def _remap_budget(b):
     return {
         "cost_center":       b.get("cost_center"),
-        "cost_center_label": b.get("cost_center"),   # API has no separate label
+        "cost_center_label": b.get("cost_center"),
         "budget_amount_brl": b.get("budget_amount_brl"),
         "actual_amount_brl": None,
         "variance_brl":      b.get("variance_brl"),
@@ -173,13 +193,16 @@ def post_resolutions():
     transaction_id = body.get("transaction_id")
     resolution = body.get("resolution", "")
     is_legitimate = resolution == "legitimate"
-    resp = requests.post(
-        PLATFORM_API + "/api/post_resolutions",
-        json={"transaction_id": transaction_id, "is_legitimate": is_legitimate},
-        timeout=10,
-    )
-    return jsonify(resp.json()), resp.status_code
+    try:
+        resp = requests.post(
+            PLATFORM_API + "/api/post_resolutions",
+            json={"transaction_id": transaction_id, "is_legitimate": is_legitimate},
+            timeout=10,
+        )
+        return jsonify(resp.json()), resp.status_code
+    except Exception:
+        return jsonify({"error": "Upstream service unavailable"}), 502
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=False)
