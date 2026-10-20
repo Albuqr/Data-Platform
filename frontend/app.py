@@ -71,6 +71,9 @@ def _remap_alert(a):
     }
 
 
+LINE_LABELS = {"pao_de_mel": "Line A", "trufa": "Line B"}
+
+
 def _remap_equipment(m):
     maint_date = m.get("maintenance_date", "") or ""
     if "T" in maint_date:
@@ -78,7 +81,7 @@ def _remap_equipment(m):
     return {
         "machine_id":      str(m.get("item_id", "")),
         "machine_type":    m.get("machine_type"),
-        "production_line": m.get("production_line"),
+        "production_line": LINE_LABELS.get(m.get("production_line"), m.get("production_line")),
         "last_maintenance": maint_date,
         "next_due":        m.get("next_due_date"),
         "days_until_due":  m.get("days_until_due"),
