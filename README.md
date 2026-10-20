@@ -13,7 +13,7 @@
 ![Redis](https://img.shields.io/badge/Redis-baseline-DC382D)
 [![Live](https://img.shields.io/badge/live-data--platform.albuqr.com-brightgreen)](https://data-platform.albuqr.com)
 
-A unified data platform built for a Brazilian confectionery manufacturer operating 28 documented machines across two product lines. Integrates a BigQuery data lakehouse and a real-time Kafka transaction monitor behind a single FastAPI abstraction layer, with a Flask dashboard for operational visibility.
+A unified data platform built for a Brazilian food manufacturer operating 28 documented machines across two product lines. Integrates a BigQuery data lakehouse and a real-time Kafka transaction monitor behind a single FastAPI abstraction layer, with a Flask dashboard for operational visibility.
 
 ## Architecture
 
@@ -64,7 +64,7 @@ The Flask frontend calls only the Platform API — never BigQuery or Redis direc
 | Equipment | Available | 28 named and documented machines out of a larger fleet — remaining machines lack identification records |
 | Budget | Available | 8 cost centers, real monthly allocations from DRE spreadsheet |
 | Actuals | Unavailable | Source transactions had no cost center mapping — variance data is null, documented not fabricated |
-| Alerts | Available | Real-time Kafka pipeline, rule-based detection at 20% deviation threshold |
+| Alerts | Available (demo) | Stored alerts from the monitor demo, rule-based detection at 20% deviation threshold; no live pipeline |
 
 ## Related Repositories
 
@@ -124,7 +124,7 @@ The dashboard will be available at `http://localhost:5000`.
 ![Redis](https://img.shields.io/badge/Redis-baseline-DC382D)
 [![Live](https://img.shields.io/badge/live-data--platform.albuqr.com-brightgreen)](https://data-platform.albuqr.com)
 
-Uma plataforma de dados unificada construída para uma indústria de confeitaria brasileira que opera 28 máquinas documentadas em duas linhas de produção. Integra um data lakehouse no BigQuery e um monitor de transações em tempo real via Kafka por trás de uma camada de abstração FastAPI, com um dashboard Flask para visibilidade operacional.
+Uma plataforma de dados unificada construída para uma indústria alimentícia brasileira que opera 28 máquinas documentadas em duas linhas de produção. Integra um data lakehouse no BigQuery e um monitor de transações em tempo real via Kafka por trás de uma camada de abstração FastAPI, com um dashboard Flask para visibilidade operacional.
 
 ## Arquitetura
 
