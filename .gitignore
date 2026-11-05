@@ -6,3 +6,6 @@ __pycache__
 .claude
 gcp-credentials.json
 *.json.key
+DESIGN.md
+PRODUCT.md
+.impeccable/

@@ -21,6 +21,8 @@ The system is split across three repositories with a strict dependency hierarchy
 
 The Flask frontend calls only the Platform API — never BigQuery or Redis directly. This dependency inversion means the dashboard has no knowledge of the underlying storage or streaming technology. If the lakehouse migrates from BigQuery to a different warehouse, or if the baseline store moves from Redis to another system, only the Platform API adapts; the dashboard and its templates remain unchanged.
 
+The dashboard has Overview, Equipment, Budget, Alerts and Case Study pages, available in English and Portuguese. Amounts show in BRL or as approximate USD, converted at a disclosed daily rate.
+
 ## Live URLs
 
 | Service | URL |
@@ -45,6 +47,7 @@ The Flask frontend calls only the Platform API — never BigQuery or Redis direc
 | SQLite | Alert persistence |
 | Docker | Containerisation |
 | Easypanel | VPS deployment |
+| Frankfurter | Daily USD to BRL reference rate |
 
 ## Key Design Decisions
 
@@ -55,6 +58,10 @@ The Flask frontend calls only the Platform API — never BigQuery or Redis direc
 **Cost center granularity** — Source transactions contained no supplier descriptions or line-item identifiers. Operating at cost center level is the finest granularity the data actually supports. This is documented explicitly rather than compensated for with fabricated dimensions.
 
 **Redis over BigQuery for baseline** — The detection pipeline targets a sub-30-second SLA from transaction arrival to alert. A BigQuery query job incurs several seconds of cold-start latency per invocation, which would make that SLA unachievable. Redis delivers the per-cost-center mean in under a millisecond.
+
+**Maintenance status measured from the latest record** — The source data is static, so measuring from today would eventually mark every machine overdue. Status is calculated from the date of the most recent maintenance record, and that date is shown on screen.
+
+**Alert reviews stay in the browser** — On a public demo, shared reviews would soon leave later visitors nothing to try. Reviews are saved only in each visitor's browser, and the Platform API's write route requires an API key.
 
 ## Data & Known Gaps
 
@@ -89,6 +96,14 @@ PLATFORM_API_URL=http://localhost:8000
 To point at the live API instead, set `PLATFORM_API_URL=https://platform-api.albuqr.com` and skip the middleware step.
 
 **Middleware (Platform API):**
+
+Set these in the `.env` file. `RESOLUTIONS_API_KEY` is optional: without it, `POST /api/post_resolutions` rejects every request. Key holders send it in the `X-API-Key` header.
+
+```
+LAKEHOUSE_API_URL=<lakehouse API URL>
+MONITOR_API_URL=<monitor API URL>
+RESOLUTIONS_API_KEY=<optional secret>
+```
 
 ```bash
 cd middleware
@@ -133,6 +148,8 @@ O sistema é dividido em três repositórios com uma hierarquia de dependências
 
 O frontend Flask chama apenas a API de Plataforma — nunca o BigQuery ou o Redis diretamente. Essa inversão de dependência significa que o dashboard não tem conhecimento da tecnologia de armazenamento ou streaming subjacente. Se o lakehouse migrar do BigQuery para outro warehouse, ou se o armazenamento de baselines mudar do Redis para outro sistema, apenas a API de Plataforma se adapta; o dashboard e seus templates permanecem inalterados.
 
+O dashboard tem as páginas Visão geral, Equipamentos, Orçamento, Alertas e Estudo de caso, em inglês e português. Os valores aparecem em BRL ou em USD aproximado, convertidos a uma taxa diária informada na tela.
+
 ## URLs em Produção
 
 | Serviço | URL |
@@ -157,6 +174,7 @@ O frontend Flask chama apenas a API de Plataforma — nunca o BigQuery ou o Redi
 | SQLite | Persistência de alertas |
 | Docker | Containerização |
 | Easypanel | Deploy em VPS |
+| Frankfurter | Taxa de referência diária de USD para BRL |
 
 ## Decisões de Projeto
 
@@ -167,6 +185,10 @@ O frontend Flask chama apenas a API de Plataforma — nunca o BigQuery ou o Redi
 **Granularidade por centro de custo** — As transações de origem não continham descrições de fornecedores ou identificadores de linha de item. Operar no nível de centro de custo é a granularidade mais fina que os dados realmente suportam. Isso está documentado explicitamente em vez de ser compensado com dimensões fabricadas.
 
 **Redis em vez de BigQuery para baselines** — O pipeline de detecção tem um SLA de menos de 30 segundos desde a chegada da transação até o alerta. Um job de consulta no BigQuery incorre em vários segundos de latência de cold start por invocação, o que tornaria esse SLA inatingível. O Redis entrega a média por centro de custo em menos de um milissegundo.
+
+**Status de manutenção medido a partir do registro mais recente** — Os dados de origem são estáticos, então medir a partir de hoje acabaria marcando todas as máquinas como atrasadas. O status é calculado a partir da data do registro de manutenção mais recente, e essa data aparece na tela.
+
+**Revisões de Alertas ficam no navegador** — Em uma demonstração pública, revisões compartilhadas logo deixariam os próximos visitantes sem nada para testar. As revisões ficam salvas apenas no navegador de cada visitante, e a rota de escrita da API de Plataforma exige uma chave de API.
 
 ## Dados e Limitações Conhecidas
 
@@ -201,6 +223,14 @@ PLATFORM_API_URL=http://localhost:8000
 Para apontar para a API em produção, defina `PLATFORM_API_URL=https://platform-api.albuqr.com` e pule a etapa do middleware.
 
 **Middleware (API de Plataforma):**
+
+Defina estas variáveis no arquivo `.env`. `RESOLUTIONS_API_KEY` é opcional: sem ela, `POST /api/post_resolutions` rejeita todas as requisições. Quem tem a chave a envia no cabeçalho `X-API-Key`.
+
+```
+LAKEHOUSE_API_URL=<URL da API de lakehouse>
+MONITOR_API_URL=<URL da API de monitoramento>
+RESOLUTIONS_API_KEY=<segredo opcional>
+```
 
 ```bash
 cd middleware
