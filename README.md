@@ -21,7 +21,7 @@ The system is split across three repositories with a strict dependency hierarchy
 
 The Flask frontend calls only the Platform API — never BigQuery or Redis directly. This dependency inversion means the dashboard has no knowledge of the underlying storage or streaming technology. If the lakehouse migrates from BigQuery to a different warehouse, or if the baseline store moves from Redis to another system, only the Platform API adapts; the dashboard and its templates remain unchanged.
 
-The dashboard has Overview, Equipment, Budget, Alerts and Case Study pages, available in English and Portuguese. Amounts show in BRL or as approximate USD, converted at a disclosed daily rate.
+The dashboard has Overview, Equipment, Budget, Alerts and Case Study pages, available in English and Portuguese. Amounts show in BRL or as approximate USD, converted at a disclosed daily rate. Alerts are stored demo data, and reviews stay in the visitor's browser. Domain terms are defined in [GLOSSARY.md](GLOSSARY.md).
 
 ## Live URLs
 
@@ -42,6 +42,7 @@ The dashboard has Overview, Equipment, Budget, Alerts and Case Study pages, avai
 | httpx | Service client HTTP calls |
 | BigQuery | Analytical warehouse |
 | dbt | Data transformation |
+| Airflow | Pipeline scheduling |
 | Kafka (KRaft) | Transaction event streaming |
 | Redis | Real-time baseline store |
 | SQLite | Alert persistence |
@@ -53,7 +54,7 @@ The dashboard has Overview, Equipment, Budget, Alerts and Case Study pages, avai
 
 **Dependency inversion** — The dashboard never calls BigQuery or Redis directly. All data access goes through the Platform API. Underlying services can be replaced without touching the presentation layer, and the dashboard's contract is a single, stable HTTP interface.
 
-**Rule-based anomaly detection** — Zero labeled anomaly history exists in the source data, which makes a supervised ML approach inappropriate: there is nothing to train on and no way to validate recall. A 20% deviation threshold from the cost center mean is explicit, auditable, and honest about what the data actually supports.
+**Rule-based anomaly detection** — Zero labeled anomaly history exists in the source data, which makes a supervised ML approach inappropriate: there is nothing to train on and no way to validate recall. A 20% deviation threshold from the cost center's running mean is explicit, auditable, and honest about what the data actually supports.
 
 **Cost center granularity** — Source transactions contained no supplier descriptions or line-item identifiers. Operating at cost center level is the finest granularity the data actually supports. This is documented explicitly rather than compensated for with fabricated dimensions.
 
@@ -148,7 +149,7 @@ O sistema é dividido em três repositórios com uma hierarquia de dependências
 
 O frontend Flask chama apenas a API de Plataforma — nunca o BigQuery ou o Redis diretamente. Essa inversão de dependência significa que o dashboard não tem conhecimento da tecnologia de armazenamento ou streaming subjacente. Se o lakehouse migrar do BigQuery para outro warehouse, ou se o armazenamento de baselines mudar do Redis para outro sistema, apenas a API de Plataforma se adapta; o dashboard e seus templates permanecem inalterados.
 
-O dashboard tem as páginas Visão geral, Equipamentos, Orçamento, Alertas e Estudo de caso, em inglês e português. Os valores aparecem em BRL ou em USD aproximado, convertidos a uma taxa diária informada na tela.
+O dashboard tem as páginas Visão geral, Equipamentos, Orçamento, Alertas e Estudo de caso, em inglês e português. Os valores aparecem em BRL ou em USD aproximado, convertidos a uma taxa diária informada na tela. Os Alertas são dados de demonstração armazenados, e as revisões ficam no navegador do visitante. Os termos do domínio estão definidos em [GLOSSARY.md](GLOSSARY.md).
 
 ## URLs em Produção
 
@@ -169,6 +170,7 @@ O dashboard tem as páginas Visão geral, Equipamentos, Orçamento, Alertas e Es
 | httpx | Chamadas HTTP dos clientes de serviço |
 | BigQuery | Warehouse analítico |
 | dbt | Transformação de dados |
+| Airflow | Agendamento de pipelines |
 | Kafka (KRaft) | Streaming de eventos de transações |
 | Redis | Armazenamento de baselines em tempo real |
 | SQLite | Persistência de alertas |
@@ -180,7 +182,7 @@ O dashboard tem as páginas Visão geral, Equipamentos, Orçamento, Alertas e Es
 
 **Inversão de dependência** — O dashboard nunca chama o BigQuery ou o Redis diretamente. Todo acesso a dados passa pela API de Plataforma. Os serviços subjacentes podem ser substituídos sem modificar a camada de apresentação, e o contrato do dashboard é uma única interface HTTP estável.
 
-**Detecção de anomalias baseada em regras** — Não existe histórico de anomalias rotuladas nos dados de origem, o que torna uma abordagem de ML supervisionado inadequada: não há nada para treinar e nenhuma forma de validar a cobertura. Um limiar de 20% de desvio em relação à média do centro de custo é explícito, auditável e honesto sobre o que os dados efetivamente suportam.
+**Detecção de anomalias baseada em regras** — Não existe histórico de anomalias rotuladas nos dados de origem, o que torna uma abordagem de ML supervisionado inadequada: não há nada para treinar e nenhuma forma de validar a cobertura. Um limiar de 20% de desvio em relação à média acumulada do centro de custo é explícito, auditável e honesto sobre o que os dados efetivamente suportam.
 
 **Granularidade por centro de custo** — As transações de origem não continham descrições de fornecedores ou identificadores de linha de item. Operar no nível de centro de custo é a granularidade mais fina que os dados realmente suportam. Isso está documentado explicitamente em vez de ser compensado com dimensões fabricadas.
 
