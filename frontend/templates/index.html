@@ -1,389 +1,152 @@
 {% extends "base.html" %}
-{% block title %}Overview · Factory Platform{% endblock %}
-{% block crumbs %}<span class="here">Overview</span>{% endblock %}
+{% from "_ui.html" import icon, status_badge, stamp, days_cell with context %}
+{% block title %}{{ t('nav_overview') }}{% endblock %}
 
 {% block content %}
-<div class="page">
-  <div class="page-head">
-    <div>
-      <h1 class="page-title">Operations overview</h1>
-      <p class="page-sub">Maintenance posture, monthly budget allocation, and unresolved anomalies — April 2026.</p>
-    </div>
-    <div class="page-head-actions">
-      <button class="btn ghost" id="btn-refresh"><span id="ic-refresh"></span>Refresh</button>
-      <button class="btn"><span id="ic-download"></span>Export</button>
-    </div>
+<div class="banner">
+  <p>{{ t('provenance') }}</p>
+  <a href="{{ url_for('case_study') }}">{{ t('read_case_study') }} {{ icon('arrow', 14) }}</a>
+</div>
+
+<div class="page-head">
+  <div>
+    <h1>{{ t('overview_title') }}</h1>
+    <p>{{ t('overview_sub') }}</p>
   </div>
+</div>
 
-  <!-- KPI ROW -->
-  <div class="kpi-grid">
-    <div class="kpi">
-      <div class="kpi-label">Total machines</div>
-      <div class="kpi-value">{{ equipment | length }}</div>
-      <div class="kpi-row">
-        <span class="kpi-delta">across 4 functional groups</span>
-        <svg class="kpi-spark" data-spark='[26,27,27,28,28,28,28,28]' data-color="#0EA5E9"></svg>
-      </div>
-    </div>
-    <div class="kpi">
-      <div class="kpi-label">Maintenance due soon</div>
-      <div class="kpi-value"><span style="color:var(--warn)">{{ eq_due_soon }}</span></div>
-      <div class="kpi-row">
-        <span class="badge warn">DUE_SOON · 7d window</span>
-        <svg class="kpi-spark" data-spark='[5,4,6,7,7,8,7,7]' data-color="#F59E0B"></svg>
-      </div>
-    </div>
-    <div class="kpi">
-      <div class="kpi-label">Budget this month</div>
-      <div class="kpi-value">
-        <span class="currency">R$</span>{{ total_budget | br_int }}
-      </div>
-      <div class="kpi-row">
-        <span class="kpi-delta">8 cost centers · 202604</span>
-        <svg class="kpi-spark" data-spark='[720,735,748,810,795,825,841,841]' data-color="#0EA5E9"></svg>
-      </div>
-    </div>
-    <div class="kpi">
-      <div class="kpi-label">Flagged alerts</div>
-      <div class="kpi-value"><span style="color:var(--bad)">{{ alerts_unreviewed }}</span></div>
-      <div class="kpi-row">
-        <span class="badge bad">UNREVIEWED</span>
-        <svg class="kpi-spark" data-spark='[2,3,3,5,4,6,7,8]' data-color="#DC2626"></svg>
-      </div>
-    </div>
+<dl class="kpis">
+  <div class="kpi">
+    <dt>{{ t('kpi_overdue') }}</dt>
+    <dd><span class="kpi-value">{{ eq_overdue }}</span> <span class="kpi-unit">{{ t('of_total', total=total_machines) }}</span></dd>
+    {% if reference_date %}<dd>{{ stamp(reference_date | date) }}</dd>{% endif %}
   </div>
-
-  <!-- CHART ROW -->
-  <div class="chart-row">
-    <div class="panel">
-      <div class="panel-head">
-        <div>
-          <div class="panel-title">Budget allocation by cost center</div>
-          <div class="panel-sub">Planned spend · BRL · month 202604</div>
-        </div>
-        <div class="panel-tools">
-          <div class="tab-group">
-            <button class="on">BRL</button>
-            <button>%</button>
-          </div>
-        </div>
-      </div>
-      <div class="chart-wrap tall">
-        <canvas id="chart-budget"></canvas>
-      </div>
-    </div>
-
-    <div class="panel">
-      <div class="panel-head">
-        <div>
-          <div class="panel-title">Maintenance status</div>
-          <div class="panel-sub">Distribution across {{ equipment | length }} machines</div>
-        </div>
-        <a href="{{ url_for('equipment') }}" class="btn ghost sm">View all →</a>
-      </div>
-      <div class="donut-wrap">
-        <div class="chart-wrap tall">
-          <canvas id="chart-equipment"></canvas>
-        </div>
-        <div class="donut-center">
-          <div>
-            <div class="num mono">{{ equipment | length }}</div>
-            <div class="lbl">Machines</div>
-          </div>
-        </div>
-      </div>
-      <div class="legend" id="equipment-legend"></div>
-    </div>
+  <div class="kpi">
+    <dt>{{ t('kpi_due_soon') }}</dt>
+    <dd><span class="kpi-value">{{ eq_due_soon }}</span> <span class="kpi-unit">{{ t('of_total', total=total_machines) }}</span></dd>
+    {% if reference_date %}<dd>{{ stamp(reference_date | date) }}</dd>{% endif %}
   </div>
+  <div class="kpi">
+    <dt>{{ t('kpi_budget') }}</dt>
+    <dd><span class="kpi-value">{{ total_budget | money(0) }}</span></dd>
+    <dd>{{ stamp(month | month) }}</dd>
+  </div>
+  <div class="kpi">
+    <dt>{{ t('kpi_pending') }}</dt>
+    <dd><span class="kpi-value" data-pending-count>{{ pending_ids | length }}</span> <span class="kpi-unit">{{ t('of_total', total=pending_ids | length) }}</span></dd>
+    {% if alerts_as_of %}<dd>{{ stamp(alerts_as_of | date) }}</dd>{% endif %}
+  </div>
+</dl>
 
-  <!-- DETAIL ROW -->
-  <div class="chart-row" style="grid-template-columns: 1.4fr 1fr;">
-    <div class="panel">
-      <div class="panel-head">
-        <div>
-          <div class="panel-title">Maintenance backlog</div>
-          <div class="panel-sub">Machines past due or due within 7 days, sorted by urgency</div>
-        </div>
-        <a href="{{ url_for('equipment') }}" class="btn ghost sm">Open Equipment →</a>
-      </div>
-      <table class="data" style="font-size: 12.5px;">
-        <thead>
-          <tr>
-            <th>Machine</th>
-            <th>Type</th>
-            <th>Line</th>
-            <th class="num">Days</th>
-            <th>Status</th>
-          </tr>
-        </thead>
+<div class="split">
+  <section class="panel" aria-labelledby="backlog-h">
+    <header class="panel-head">
+      <div><h2 id="backlog-h">{{ t('backlog_title') }}</h2><p>{{ t('backlog_sub') }} · {{ t('showing', shown=backlog | length, total=backlog_total) }}</p></div>
+      {% if reference_date %}{{ stamp(reference_date | date) }}{% endif %}
+    </header>
+    {% if backlog %}
+    <div class="table-scroll">
+      <table class="data">
+        <thead><tr>
+          <th scope="col">{{ t('col_machine') }}</th>
+          <th scope="col">{{ t('col_type') }}</th>
+          <th scope="col" class="hide-small">{{ t('col_line') }}</th>
+          <th scope="col" class="num">{{ t('col_days') }}</th>
+          <th scope="col">{{ t('col_status') }}</th>
+        </tr></thead>
         <tbody>
           {% for m in backlog %}
-          {% set d = m.days_until_due %}
-          <tr class="{% if m.status == 'OVERDUE' %}row-bad{% endif %}">
-            <td><span class="id">{{ m.machine_id }}</span></td>
-            <td>{{ m.machine_type }}</td>
-            <td><span class="mono faint">{{ m.production_line }}</span></td>
-            <td class="num">
-              <span class="days {% if d < 0 %}bad{% elif d <= 7 %}warn{% else %}ok{% endif %}">
-                {% if d > 0 %}+{% endif %}{{ d }}d
-              </span>
-            </td>
-            <td>
-              {% if m.status == 'OVERDUE' %}
-                <span class="badge bad">OVERDUE</span>
-              {% else %}
-                <span class="badge warn">DUE_SOON</span>
-              {% endif %}
-            </td>
+          <tr>
+            <th scope="row" class="id">{{ m.machine_id }}</th>
+            <td>{{ m.machine_type | label }}</td>
+            <td class="hide-small">{{ m.production_line | label }}</td>
+            <td class="num">{{ days_cell(m.days_until_due) }}</td>
+            <td>{{ status_badge(m.status) }}</td>
           </tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
+    {% else %}<p class="empty">{{ t('backlog_empty') }}</p>{% endif %}
+    <footer class="panel-foot"><a href="{{ url_for('equipment') }}">{{ t('open_equipment') }} {{ icon('arrow', 14) }}</a></footer>
+  </section>
 
-    <div class="panel">
-      <div class="panel-head">
+  <section class="panel" aria-labelledby="alerts-h">
+    <header class="panel-head">
+      <div><h2 id="alerts-h">{{ t('largest_alerts_title') }}</h2><p>{{ t('largest_alerts_sub') }}</p></div>
+      {% if alerts_as_of %}{{ stamp(alerts_as_of | date) }}{% endif %}
+    </header>
+    <ul class="alert-list" id="largest-alerts">
+      {% for a in alerts %}
+      <li data-alert-row data-id="{{ a.transaction_id }}"{% if loop.index > 4 %} hidden{% endif %}>
         <div>
-          <div class="panel-title">Top anomalies</div>
-          <div class="panel-sub">Pending review · sorted by deviation</div>
+          <span class="alert-cc">{{ a.cost_center | label }}</span>
+          <span class="alert-amounts">{{ a.amount_brl | money }} · {{ t('vs_mean', mean=a.mean_amount_brl | money) }}</span>
         </div>
-        <a href="{{ url_for('alerts') }}" class="btn ghost sm">All alerts →</a>
-      </div>
-      <div class="vstack" style="gap:10px;">
-        {% for a in top_alerts %}
-        <div style="display:grid;grid-template-columns:1fr auto;gap:10px;padding:9px 10px;border:1px solid var(--border);border-left:2px solid var(--bad);border-radius:5px;background:rgba(220,38,38,0.03);">
-          <div style="min-width:0;">
-            <div class="mono" style="font-size:11.5px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ a.transaction_id }}</div>
-            <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">
-              {{ a.cost_center }} · <span class="mono">R$ {{ a.amount_brl | br }}</span>
-              <span class="faint"> vs μ R$ {{ a.mean_amount_brl | br }}</span>
-            </div>
-          </div>
-          <div style="font-family:var(--f-mono);color:var(--bad);font-size:16px;align-self:center;">+{{ "%.0f"|format(a.deviation_pct) }}%</div>
-        </div>
-        {% endfor %}
-      </div>
-    </div>
-  </div>
-
-  <!-- PROJECT SECTION -->
-  <div class="section-head">
-    <div class="section-rule"></div>
-    <span class="section-label">Project</span>
-    <div class="section-rule grow"></div>
-  </div>
-
-  <div class="adr-callout">
-    <span class="adr-tag">ADR · 2026-04</span>
-    <p class="adr-quote">
-      Anomaly detection is rule-based <em>by design</em> — zero labeled history makes ML inappropriate here.
-    </p>
-  </div>
-
-  <div class="chart-row" style="grid-template-columns: 1fr 1fr; margin-bottom: 0;">
-    <div class="panel">
-      <div class="panel-head" style="margin-bottom: 10px;">
-        <div>
-          <div class="panel-title">Factory Data Platform</div>
-          <div class="panel-sub">Portfolio project · Apr 2026</div>
-        </div>
-        <span class="badge info">case study</span>
-      </div>
-      <p class="proj-desc">
-        Built for a Brazilian food manufacturer operating <strong>28 documented machines</strong> across two product lines.
-        All controls previously ran on paper.
-      </p>
-
-      <div class="proj-repos">
-        <a class="repo-pill" href="https://github.com/Albuqr/Factory_Lakehouse" target="_blank" rel="noopener">
-          <span class="gh-ic"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.58.11.79-.25.79-.56v-2c-3.2.7-3.88-1.36-3.88-1.36-.52-1.32-1.27-1.67-1.27-1.67-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.18 1.76 1.18 1.02 1.76 2.69 1.25 3.35.95.1-.74.4-1.25.73-1.54-2.56-.29-5.25-1.28-5.25-5.71 0-1.26.45-2.29 1.19-3.1-.12-.29-.52-1.47.11-3.06 0 0 .97-.31 3.18 1.18.92-.26 1.91-.39 2.89-.39s1.97.13 2.89.39c2.21-1.49 3.18-1.18 3.18-1.18.63 1.59.23 2.77.11 3.06.74.81 1.19 1.84 1.19 3.1 0 4.44-2.7 5.41-5.27 5.7.41.36.78 1.06.78 2.14v3.17c0 .31.21.68.8.56C20.21 21.39 23.5 17.08 23.5 12 23.5 5.65 18.35.5 12 .5z"/></svg></span>
-          <span class="rp-name">Factory Lakehouse</span>
-          <span class="rp-arrow">&#8599;</span>
-        </a>
-        <a class="repo-pill" href="https://github.com/Albuqr/Transaction_Monitor" target="_blank" rel="noopener">
-          <span class="gh-ic"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.58.11.79-.25.79-.56v-2c-3.2.7-3.88-1.36-3.88-1.36-.52-1.32-1.27-1.67-1.27-1.67-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.18 1.76 1.18 1.02 1.76 2.69 1.25 3.35.95.1-.74.4-1.25.73-1.54-2.56-.29-5.25-1.28-5.25-5.71 0-1.26.45-2.29 1.19-3.1-.12-.29-.52-1.47.11-3.06 0 0 .97-.31 3.18 1.18.92-.26 1.91-.39 2.89-.39s1.97.13 2.89.39c2.21-1.49 3.18-1.18 3.18-1.18.63 1.59.23 2.77.11 3.06.74.81 1.19 1.84 1.19 3.1 0 4.44-2.7 5.41-5.27 5.7.41.36.78 1.06.78 2.14v3.17c0 .31.21.68.8.56C20.21 21.39 23.5 17.08 23.5 12 23.5 5.65 18.35.5 12 .5z"/></svg></span>
-          <span class="rp-name">Transaction Monitor</span>
-          <span class="rp-arrow">&#8599;</span>
-        </a>
-        <a class="repo-pill" href="https://github.com/Albuqr/Data-Platform" target="_blank" rel="noopener">
-          <span class="gh-ic"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.58.11.79-.25.79-.56v-2c-3.2.7-3.88-1.36-3.88-1.36-.52-1.32-1.27-1.67-1.27-1.67-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.18 1.76 1.18 1.02 1.76 2.69 1.25 3.35.95.1-.74.4-1.25.73-1.54-2.56-.29-5.25-1.28-5.25-5.71 0-1.26.45-2.29 1.19-3.1-.12-.29-.52-1.47.11-3.06 0 0 .97-.31 3.18 1.18.92-.26 1.91-.39 2.89-.39s1.97.13 2.89.39c2.21-1.49 3.18-1.18 3.18-1.18.63 1.59.23 2.77.11 3.06.74.81 1.19 1.84 1.19 3.1 0 4.44-2.7 5.41-5.27 5.7.41.36.78 1.06.78 2.14v3.17c0 .31.21.68.8.56C20.21 21.39 23.5 17.08 23.5 12 23.5 5.65 18.35.5 12 .5z"/></svg></span>
-          <span class="rp-name">Data Platform</span>
-          <span class="rp-arrow">&#8599;</span>
-        </a>
-      </div>
-
-      <div class="stack-strip" aria-label="Tech stack">
-        <span class="stack-label">Stack</span>
-        <span class="stack-chip">Kafka</span>
-        <span class="stack-chip">Redis</span>
-        <span class="stack-chip">BigQuery</span>
-        <span class="stack-chip">dbt</span>
-        <span class="stack-chip">Airflow</span>
-        <span class="stack-chip">FastAPI</span>
-        <span class="stack-chip">Docker</span>
-      </div>
-
-      <div class="proj-urls">
-        <div class="url-row"><span class="url-tag">lakehouse</span><span class="mono">lakehouse.albuqr.com</span></div>
-        <div class="url-row"><span class="url-tag">monitor</span><span class="mono">transaction-monitor.albuqr.com</span></div>
-        <div class="url-row"><span class="url-tag">api</span><span class="mono">platform-api.albuqr.com</span></div>
-      </div>
-    </div>
-
-    <div class="panel">
-      <div class="panel-head" style="margin-bottom: 10px;">
-        <div>
-          <div class="panel-title">Data sources &amp; known gaps</div>
-          <div class="panel-sub">Documented, not fabricated</div>
-        </div>
-      </div>
-      <div class="gap-list">
-        <div class="gap-row">
-          <span class="gap-mark ok">&#10003;</span>
-          <div>
-            <div class="gap-label">Equipment</div>
-            <div class="gap-desc">28 named and documented machines out of a larger fleet — remaining machines lack identification records.</div>
-          </div>
-        </div>
-        <div class="gap-row">
-          <span class="gap-mark ok">&#10003;</span>
-          <div>
-            <div class="gap-label">Budget</div>
-            <div class="gap-desc">8 cost centers, real monthly allocations from DRE spreadsheet.</div>
-          </div>
-        </div>
-        <div class="gap-row">
-          <span class="gap-mark bad">&#10007;</span>
-          <div>
-            <div class="gap-label">Actuals</div>
-            <div class="gap-desc">Source transactions had no cost center mapping — variance data unavailable. Documented, not fabricated.</div>
-          </div>
-        </div>
-        <div class="gap-row">
-          <span class="gap-mark ok">&#10003;</span>
-          <div>
-            <div class="gap-label">Alerts</div>
-            <div class="gap-desc">Rule-based detection at 20% deviation threshold. Alerts shown are stored demo data; no live pipeline.</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
+        <strong class="num">{{ a.deviation_pct | signed_pct }}</strong>
+      </li>
+      {% endfor %}
+    </ul>
+    <p class="empty" id="largest-alerts-empty"{% if alerts %} hidden{% endif %}>{{ t('alerts_all_reviewed') }}</p>
+    <footer class="panel-foot"><a href="{{ url_for('alerts') }}">{{ t('open_alerts') }} {{ icon('arrow', 14) }}</a></footer>
+  </section>
 </div>
-{% endblock %}
 
-{% block scripts %}
-<script>
-document.getElementById("ic-refresh").innerHTML = window.ICONS.refresh;
-document.getElementById("ic-download").innerHTML = window.ICONS.download;
+<div class="split even">
+  <section class="panel" aria-labelledby="budget-h">
+    <header class="panel-head">
+      <div><h2 id="budget-h">{{ t('budget_by_cc') }}</h2><p>{{ t('budget_by_cc_sub') }}</p></div>
+      {{ stamp(month | month) }}
+    </header>
+    <table class="bars">
+      <caption class="sr-only">{{ t('budget_by_cc') }}</caption>
+      <tbody>
+        {% for b in budget %}
+        <tr title="{{ b.cost_center | label }}: {{ b.budget_amount_brl | money }} ({{ b.share_pct | num(1) }}%)">
+          <th scope="row">{{ b.cost_center | label }}</th>
+          <td class="bar-cell"><span class="bar" style="width: {{ '%.2f' | format(b.bar_pct) }}%"></span></td>
+          <td class="num">{{ b.budget_amount_brl | money(0) }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <footer class="panel-foot"><a href="{{ url_for('budget') }}">{{ t('open_budget') }} {{ icon('arrow', 14) }}</a></footer>
+  </section>
 
-// Sparklines
-document.querySelectorAll("svg[data-spark]").forEach(function(svg) {
-  var data = JSON.parse(svg.dataset.spark);
-  var color = svg.dataset.color || "#0EA5E9";
-  var w = 80, h = 22, pad = 1.5;
-  var min = Math.min.apply(null, data), max = Math.max.apply(null, data);
-  var range = max - min || 1;
-  var pts = data.map(function(v, i) {
-    return [pad + (i * (w - 2*pad)) / (data.length - 1), h - pad - ((v - min) / range) * (h - 2*pad)];
-  });
-  var path = pts.map(function(p, i) { return (i ? "L" : "M") + p[0].toFixed(1) + " " + p[1].toFixed(1); }).join(" ");
-  var last = pts[pts.length - 1];
-  var area = path + " L " + last[0].toFixed(1) + " " + (h - pad) + " L " + pts[0][0].toFixed(1) + " " + (h - pad) + " Z";
-  svg.setAttribute("viewBox", "0 0 " + w + " " + h);
-  svg.innerHTML = '<path d="' + area + '" fill="' + color + '" opacity="0.14"/>' +
-    '<path d="' + path + '" fill="none" stroke="' + color + '" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"/>' +
-    '<circle cx="' + last[0].toFixed(1) + '" cy="' + last[1].toFixed(1) + '" r="1.8" fill="' + color + '"/>';
-});
-
-// Chart defaults
-Chart.defaults.color = "#8B98A5";
-Chart.defaults.font.family = "Inter, system-ui, sans-serif";
-Chart.defaults.font.size = 11.5;
-Chart.defaults.borderColor = "#262E38";
-
-// Budget bar chart
-var budgetData = {{ budget | tojson }};
-var sorted = budgetData.slice().sort(function(a, b) { return b.budget_amount_brl - a.budget_amount_brl; });
-new Chart(document.getElementById("chart-budget"), {
-  type: "bar",
-  data: {
-    labels: sorted.map(function(b) { return b.cost_center_label; }),
-    datasets: [{
-      data: sorted.map(function(b) { return b.budget_amount_brl; }),
-      backgroundColor: "#0EA5E9",
-      hoverBackgroundColor: "#38BDF8",
-      borderRadius: 3,
-      barThickness: 14,
-    }]
-  },
-  options: {
-    indexAxis: "y",
-    maintainAspectRatio: false,
-    responsive: true,
-    plugins: {
-      legend: { display: false },
-      tooltip: {
-        backgroundColor: "#20262E", borderColor: "#323B47", borderWidth: 1,
-        titleColor: "#E7EDF3", bodyColor: "#E7EDF3", padding: 10, cornerRadius: 4,
-        titleFont: { size: 11.5, weight: '500' },
-        bodyFont: { family: "JetBrains Mono", size: 12 },
-        callbacks: { label: function(ctx) { return " R$ " + ctx.parsed.x.toLocaleString("pt-BR", {minimumFractionDigits:2}); } }
-      }
-    },
-    scales: {
-      x: { grid: { color: "#1F2730", drawBorder: false }, ticks: { font: { family: "JetBrains Mono" }, callback: function(v) { return "R$" + (v/1000).toFixed(0) + "k"; } } },
-      y: { grid: { display: false, drawBorder: false }, ticks: { font: { size: 11.5 } } }
-    }
-  }
-});
-
-// Equipment donut
-var eqData = [
-  { label: "OK",       count: {{ eq_ok }},       color: "#16A34A" },
-  { label: "DUE_SOON", count: {{ eq_due_soon }},  color: "#F59E0B" },
-  { label: "OVERDUE",  count: {{ eq_overdue }},   color: "#DC2626" },
-];
-var totalMachines = {{ equipment | length }};
-new Chart(document.getElementById("chart-equipment"), {
-  type: "doughnut",
-  data: {
-    labels: eqData.map(function(d) { return d.label; }),
-    datasets: [{
-      data: eqData.map(function(d) { return d.count; }),
-      backgroundColor: eqData.map(function(d) { return d.color; }),
-      borderColor: "#1A2027",
-      borderWidth: 3,
-      hoverOffset: 4,
-    }]
-  },
-  options: {
-    cutout: "70%",
-    maintainAspectRatio: false,
-    responsive: true,
-    plugins: {
-      legend: { display: false },
-      tooltip: {
-        backgroundColor: "#20262E", borderColor: "#323B47", borderWidth: 1,
-        titleColor: "#E7EDF3", bodyColor: "#E7EDF3", padding: 10, cornerRadius: 4,
-        callbacks: { label: function(ctx) { return " " + ctx.label + ": " + ctx.parsed + " machines"; } }
-      }
-    }
-  }
-});
-
-document.getElementById("equipment-legend").innerHTML = eqData.map(function(d) {
-  var pct = ((d.count / totalMachines) * 100).toFixed(1);
-  return '<div class="legend-row">' +
-    '<span class="legend-sw" style="background:' + d.color + '"></span>' +
-    '<span class="legend-name">' + d.label + '</span>' +
-    '<span class="legend-val">' + d.count + '</span>' +
-    '<span class="legend-pct">' + pct + '%</span>' +
-    '</div>';
-}).join("");
-
-document.getElementById("btn-refresh").addEventListener("click", function() {
-  window.toast("Refreshed", "Fetched latest data", "ok");
-});
-</script>
+  <section class="panel" aria-labelledby="status-h">
+    <header class="panel-head">
+      <div><h2 id="status-h">{{ t('status_title') }}</h2><p>{{ t('status_sub', total=total_machines) }}</p></div>
+      {% if reference_date %}{{ stamp(reference_date | date) }}{% endif %}
+    </header>
+    <div class="status-body">
+      <div class="donut">
+        <svg viewBox="0 0 120 120" aria-hidden="true" focusable="false">
+          <circle class="donut-track" cx="60" cy="60" r="47.6" pathLength="100"/>
+          <g transform="rotate(-90 60 60)">
+            {% for c in counts if c.count %}
+            <circle class="donut-seg {{ c.status | lower }}" cx="60" cy="60" r="47.6" pathLength="100" stroke-dasharray="{{ c.dash }} 100" stroke-dashoffset="{{ c.offset }}"><title>{{ c.status | label }}: {{ c.count }}</title></circle>
+            {% endfor %}
+          </g>
+        </svg>
+        <div class="donut-centre" aria-hidden="true">
+          <span class="donut-total">{{ total_machines }}</span>
+          <span class="donut-unit">{{ t('status_centre') }}</span>
+        </div>
+      </div>
+      <table class="legend">
+        <caption class="sr-only">{{ t('status_title') }}</caption>
+        <tbody>
+          {% for c in counts %}
+          <tr>
+            <th scope="row"><span class="swatch {{ c.status | lower }}"></span>{{ c.status | label }}</th>
+            <td class="num">{{ c.count }}</td>
+            <td class="num muted">{{ c.pct | num(1) }}%</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <footer class="panel-foot"><a href="{{ url_for('equipment') }}">{{ t('open_equipment') }} {{ icon('arrow', 14) }}</a></footer>
+  </section>
+</div>
 {% endblock %}
