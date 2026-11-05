@@ -5,4 +5,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY main.py .
 COPY services/ services/
 COPY config.py .
+RUN useradd --create-home app
+USER app
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8004"]
