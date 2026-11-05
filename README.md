@@ -1,8 +1,8 @@
-[🇬🇧 English](#data-platform) · [🇧🇷 Português](#plataforma-de-dados)
+[🇬🇧 English](#factory-data-platform) · [🇧🇷 Português](#factory-data-platform-pt)
 
 ---
 
-# Data Platform
+# Factory Data Platform
 
 ![Python](https://img.shields.io/badge/Python-3.11-blue)
 ![Flask](https://img.shields.io/badge/Flask-3.x-lightgrey)
@@ -13,7 +13,7 @@
 ![Redis](https://img.shields.io/badge/Redis-baseline-DC382D)
 [![Live](https://img.shields.io/badge/live-data--platform.albuqr.com-brightgreen)](https://data-platform.albuqr.com)
 
-A unified data platform built for a Brazilian food manufacturer operating 28 documented machines across two product lines. Integrates a BigQuery data lakehouse and a real-time Kafka transaction monitor behind a single FastAPI abstraction layer, with a Flask dashboard for operational visibility.
+Portfolio project. Uses anonymized planning and maintenance data from a Brazilian food manufacturer. It covers 28 documented machines across two product lines and integrates a BigQuery data lakehouse and a real-time Kafka transaction monitor behind a single FastAPI abstraction layer, with a Flask dashboard for operational visibility.
 
 ## Architecture
 
@@ -28,7 +28,6 @@ The Flask frontend calls only the Platform API — never BigQuery or Redis direc
 | Dashboard | https://data-platform.albuqr.com |
 | Platform API | https://platform-api.albuqr.com |
 | Lakehouse API | https://lakehouse-api.albuqr.com |
-| Monitor API | http://31.97.83.21:8002 |
 | Factory Lakehouse | https://lakehouse.albuqr.com |
 | Transaction Monitor | https://transaction-monitor.albuqr.com |
 
@@ -62,7 +61,7 @@ The Flask frontend calls only the Platform API — never BigQuery or Redis direc
 | Source | Status | Notes |
 |--------|--------|-------|
 | Equipment | Available | 28 named and documented machines out of a larger fleet — remaining machines lack identification records |
-| Budget | Available | 8 cost centers, real monthly allocations from DRE spreadsheet |
+| Budget | Available | 8 cost centers, monthly allocations from a DRE spreadsheet |
 | Actuals | Unavailable | Source transactions had no cost center mapping — variance data is null, documented not fabricated |
 | Alerts | Available (demo) | Stored alerts from the monitor demo, rule-based detection at 20% deviation threshold; no live pipeline |
 
@@ -109,11 +108,13 @@ The dashboard will be available at `http://localhost:5000`.
 
 ---
 
-[🇬🇧 English](#data-platform) · [🇧🇷 Português](#plataforma-de-dados)
+[🇬🇧 English](#factory-data-platform) · [🇧🇷 Português](#factory-data-platform-pt)
 
 ---
 
-# Plataforma de Dados
+<a id="factory-data-platform-pt"></a>
+
+# Factory Data Platform
 
 ![Python](https://img.shields.io/badge/Python-3.11-blue)
 ![Flask](https://img.shields.io/badge/Flask-3.x-lightgrey)
@@ -124,7 +125,7 @@ The dashboard will be available at `http://localhost:5000`.
 ![Redis](https://img.shields.io/badge/Redis-baseline-DC382D)
 [![Live](https://img.shields.io/badge/live-data--platform.albuqr.com-brightgreen)](https://data-platform.albuqr.com)
 
-Uma plataforma de dados unificada construída para uma indústria alimentícia brasileira que opera 28 máquinas documentadas em duas linhas de produção. Integra um data lakehouse no BigQuery e um monitor de transações em tempo real via Kafka por trás de uma camada de abstração FastAPI, com um dashboard Flask para visibilidade operacional.
+Projeto de portfólio. Usa dados anonimizados de planejamento e manutenção de uma indústria alimentícia brasileira. Abrange 28 máquinas documentadas em duas linhas de produção e integra um data lakehouse no BigQuery e um monitor de transações em tempo real via Kafka por trás de uma camada de abstração FastAPI, com um dashboard Flask para visibilidade operacional.
 
 ## Arquitetura
 
@@ -139,7 +140,6 @@ O frontend Flask chama apenas a API de Plataforma — nunca o BigQuery ou o Redi
 | Dashboard | https://data-platform.albuqr.com |
 | API de Plataforma | https://platform-api.albuqr.com |
 | API de Lakehouse | https://lakehouse-api.albuqr.com |
-| API de Monitoramento | http://31.97.83.21:8002 |
 | Factory Lakehouse | https://lakehouse.albuqr.com |
 | Transaction Monitor | https://transaction-monitor.albuqr.com |
 
@@ -173,9 +173,9 @@ O frontend Flask chama apenas a API de Plataforma — nunca o BigQuery ou o Redi
 | Fonte | Status | Observações |
 |-------|--------|-------------|
 | Equipamentos | Disponível | 28 máquinas nomeadas e documentadas de uma frota maior — as máquinas restantes não possuem registros de identificação |
-| Orçamento | Disponível | 8 centros de custo, alocações mensais reais extraídas do DRE |
+| Orçamento | Disponível | 8 centros de custo, alocações mensais extraídas do DRE |
 | Realizado | Indisponível | As transações de origem não tinham mapeamento de centro de custo — dados de variação são nulos, documentados e não fabricados |
-| Alertas | Disponível | Pipeline Kafka em tempo real, detecção baseada em regras com limiar de 20% de desvio |
+| Alertas | Disponível (demonstração) | Alertas armazenados da demonstração do monitor, detecção baseada em regras com limiar de 20% de desvio; sem pipeline ao vivo |
 
 ## Repositórios Relacionados
 

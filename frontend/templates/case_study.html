@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% from "_ui.html" import icon with context %}
+{% block title %}{{ t('nav_case_study') }}{% endblock %}
+
+{% block content %}
+<article class="case">
+  <header class="page-head">
+    <div>
+      <h1>{{ t('cs_title') }}</h1>
+      <p class="lede">{{ t('provenance') }}</p>
+    </div>
+  </header>
+
+  <section aria-labelledby="summary-h">
+    <h2 id="summary-h">{{ t('cs_summary_h') }}</h2>
+    <div class="case-split">
+    <p class="prose">{{ t('cs_summary') }}</p>
+    <div>
+    <h3>{{ t('cs_repos') }}</h3>
+    <ul class="link-list">
+      {% for name, url in [('Factory Lakehouse', 'https://github.com/Albuqr/Factory_Lakehouse'), ('Transaction Monitor', 'https://github.com/Albuqr/Transaction_Monitor'), ('Data Platform', 'https://github.com/Albuqr/Data-Platform')] %}
+      <li><a href="{{ url }}" target="_blank" rel="noopener">{{ name }} {{ icon('external', 12) }}</a></li>
+      {% endfor %}
+    </ul>
+    </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="arch-h">
+    <h2 id="arch-h">{{ t('cs_architecture_h') }}</h2>
+    <div class="case-split">
+    <p class="prose">{{ t('cs_architecture') }}</p>
+    <div>
+    <h3>{{ t('cs_stack') }}</h3>
+    <ul class="chips">
+      {% for item in ['Kafka', 'Redis', 'BigQuery', 'dbt', 'Airflow', 'FastAPI', 'Flask', 'Docker'] %}<li>{{ item }}</li>{% endfor %}
+    </ul>
+    </div>
+    </div>
+    <figure class="arch">
+      <div class="arch-row two">
+        <div class="arch-node"><strong>Factory Lakehouse</strong><span>{{ t('cs_lakehouse_d') }}</span></div>
+        <div class="arch-node"><strong>Transaction Monitor</strong><span>{{ t('cs_monitor_d') }}</span></div>
+      </div>
+      <div class="arch-row two" aria-hidden="true"><div class="arch-link"></div><div class="arch-link"></div></div>
+      <div class="arch-group">
+        <div class="arch-node strong"><strong>{{ 'API de Plataforma' if lang == 'pt' else 'Platform API' }}</strong><span>{{ t('cs_api_d') }}</span></div>
+        <div class="arch-link" aria-hidden="true"></div>
+        <div class="arch-node"><strong>Dashboard</strong><span>{{ t('cs_dashboard_d') }}</span></div>
+        <span class="arch-group-label">{{ t('cs_this_repo') }}</span>
+      </div>
+    </figure>
+  </section>
+
+  <section aria-labelledby="decisions-h">
+    <h2 id="decisions-h">{{ t('cs_decisions_h') }}</h2>
+    <div class="table-scroll stack-on-small">
+      <table class="data wrap">
+        <thead><tr>
+          <th scope="col">{{ t('col_decision') }}</th>
+          <th scope="col">{{ t('col_reason') }}</th>
+          <th scope="col">{{ t('col_tradeoff') }}</th>
+        </tr></thead>
+        <tbody>
+          {% for n in range(1, 7) %}
+          {% set k = 'd' ~ n %}
+          <tr>
+            <th scope="row" data-label="{{ t('col_decision') }}">{{ t(k) }}</th>
+            <td data-label="{{ t('col_reason') }}">{{ t(k ~ '_r') }}</td>
+            <td data-label="{{ t('col_tradeoff') }}">{{ t(k ~ '_t') }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section aria-labelledby="gaps-h">
+    <h2 id="gaps-h">{{ t('cs_gaps_h') }}</h2>
+    <div class="table-scroll stack-on-small">
+      <table class="data wrap">
+        <thead><tr>
+          <th scope="col">{{ t('col_source') }}</th>
+          <th scope="col">{{ t('col_state') }}</th>
+          <th scope="col">{{ t('col_notes') }}</th>
+        </tr></thead>
+        <tbody>
+          {% for key, state, kind, ic in [('gap_equipment', 'state_available', 'ok', 'check'), ('gap_budget', 'state_available', 'ok', 'check'), ('gap_actuals', 'state_unavailable', 'bad', 'close'), ('gap_alerts', 'state_demo', 'neutral', 'info')] %}
+          <tr>
+            <th scope="row" data-label="{{ t('col_source') }}">{{ t(key) }}</th>
+            <td data-label="{{ t('col_state') }}"><span class="badge {{ kind }}">{{ icon(ic, 12) }}{{ t(state) }}</span></td>
+            <td data-label="{{ t('col_notes') }}">{{ t(key ~ '_n') }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section aria-labelledby="real-h">
+    <h2 id="real-h">{{ t('cs_real_h') }}</h2>
+    <div class="columns">
+      <div>
+        <h3>{{ t('cs_real_col') }}</h3>
+        <ul class="plain">{% for n in (1, 2, 3) %}<li>{{ t('real_' ~ n) }}</li>{% endfor %}</ul>
+      </div>
+      <div>
+        <h3>{{ t('cs_demo_col') }}</h3>
+        <ul class="plain">{% for n in (1, 2, 3) %}<li>{{ t('demo_' ~ n) }}</li>{% endfor %}</ul>
+      </div>
+    </div>
+  </section>
+
+  <section id="contact" aria-labelledby="contact-h" class="contact">
+    <h2 id="contact-h">{{ t('cs_contact_h') }}</h2>
+    <div class="case-split">
+    <p class="contact-name">João Pedro Castro Albuquerque</p>
+    <ul class="link-list">
+      <li><a href="https://www.linkedin.com/in/albuqr-dataengineer/" target="_blank" rel="noopener">LinkedIn {{ icon('external', 12) }}</a></li>
+      <li><a href="https://github.com/Albuqr" target="_blank" rel="noopener">GitHub {{ icon('external', 12) }}</a></li>
+      <li><a href="mailto:jpcaastroo@gmail.com">jpcaastroo@gmail.com</a></li>
+    </ul>
+    </div>
+  </section>
+</article>
+{% endblock %}

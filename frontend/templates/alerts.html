@@ -1,200 +1,77 @@
 {% extends "base.html" %}
-{% block title %}Alerts · Factory Platform{% endblock %}
-{% block crumbs %}
-  <span>Anomaly Detection</span>
-  <span class="sep">/</span>
-  <span class="here">Transaction Alerts</span>
-{% endblock %}
+{% from "_ui.html" import icon, stamp with context %}
+{% block title %}{{ t('nav_alerts') }}{% endblock %}
 
 {% block content %}
-<div class="page">
-  <div class="page-head">
-    <div>
-      <h1 class="page-title">Transaction alerts</h1>
-      <p class="page-sub">Anomalies detected by cost center baseline comparison · transactions deviating more than 20% from the cost center mean.</p>
-    </div>
-    <div class="page-head-actions">
-      <button class="btn ghost"><span id="ic-refresh"></span>Re-run detection</button>
-    </div>
+<div class="page-head">
+  <div>
+    <h1>{{ t('alerts_title') }}</h1>
+    <p>{{ t('alerts_sub') }}</p>
   </div>
-
-  <!-- KPIs -->
-  {% set total_alerts    = data | length %}
-  {% set pending_alerts  = data | selectattr('status', 'equalto', 'pending') | list | length %}
-  <div class="kpi-grid cols-2">
-    <div class="kpi">
-      <div class="kpi-label">Total alerts</div>
-      <div class="kpi-value">{{ total_alerts }}</div>
-      <div class="kpi-row">
-        <span class="kpi-delta">Detection window · 14 days</span>
-      </div>
-    </div>
-    <div class="kpi">
-      <div class="kpi-label">Unreviewed</div>
-      <div class="kpi-value" style="color:var(--bad)">{{ pending_alerts }}</div>
-      <div class="kpi-row">
-        <span class="badge bad">REQUIRES ACTION</span>
-        <span class="kpi-delta">{{ "%.0f" | format(pending_alerts / total_alerts * 100) if total_alerts > 0 else 0 }}% of alerts</span>
-      </div>
-    </div>
-  </div>
-
-  <!-- Filter strip -->
-  <div class="hstack" style="margin-bottom: 14px;">
-    <div class="tab-group" id="status-tabs">
-      <button data-f="all" class="on">All <span class="faint" id="ct-all"></span></button>
-      <button data-f="pending">Pending <span class="faint" id="ct-pending"></span></button>
-      <button data-f="reviewed">Reviewed <span class="faint" id="ct-reviewed"></span></button>
-    </div>
-    <span style="margin-left:auto;font-size:11.5px;color:var(--text-muted);">
-      Resolutions POST to <span class="mono" style="color:var(--text);">/api/post_resolutions</span>
-    </span>
-  </div>
-
-  <div class="alerts-grid" id="alerts-grid"></div>
-  <div id="alerts-empty" style="display:none;text-align:center;padding:48px;color:var(--text-faint);border:1px dashed var(--border-2);border-radius:8px;">
-    No alerts match this filter.
+  <div class="page-head-side">
+    {% if alerts_as_of %}{{ stamp(alerts_as_of | date) }}{% endif %}
   </div>
 </div>
-{% endblock %}
 
-{% block scripts %}
-<script>
-document.getElementById("ic-refresh").innerHTML = window.ICONS.refresh;
+<div class="notice">
+  {{ icon('info') }}
+  <p>{{ t('demo_notice') }}</p>
+  <button class="btn small" type="button" id="reset-demo">{{ t('reset_demo') }}</button>
+</div>
 
-var ALL = {{ data | tojson }}.map(function(a) { return Object.assign({}, a); });
+<section class="panel">
+  {% if data %}
+  <div class="toolbar">
+    <div class="tabs" id="alert-tabs" role="group" aria-label="{{ t('filter_label') }}">
+      <button type="button" data-filter="all" aria-pressed="true">{{ t('filter_all') }} <span class="tab-count" data-tab-count="all"></span></button>
+      <button type="button" data-filter="pending" aria-pressed="false">{{ t('filter_pending') }} <span class="tab-count" data-tab-count="pending"></span></button>
+      <button type="button" data-filter="reviewed" aria-pressed="false">{{ t('filter_reviewed') }} <span class="tab-count" data-tab-count="reviewed"></span></button>
+    </div>
+  </div>
 
-function countPending()  { return ALL.filter(function(a) { return a.status === "pending"; }).length; }
-function countReviewed() { return ALL.filter(function(a) { return a.status === "reviewed"; }).length; }
-
-function refreshCounts() {
-  document.getElementById("ct-all").textContent = "(" + ALL.length + ")";
-  document.getElementById("ct-pending").textContent = "(" + countPending() + ")";
-  document.getElementById("ct-reviewed").textContent = "(" + countReviewed() + ")";
-}
-
-function fmtTs(iso) {
-  var d = new Date(iso);
-  return d.toISOString().slice(0,10) + " " + d.toISOString().slice(11,19) + " UTC";
-}
-function fmtTrunc(id, n) {
-  n = n || 18;
-  if (id.length <= n) return id;
-  return id.slice(0, n) + "…" + id.slice(-4);
-}
-
-var currentFilter = "all";
-
-function render() {
-  var list = ALL.filter(function(a) {
-    return currentFilter === "all" || a.status === currentFilter;
-  });
-  var grid = document.getElementById("alerts-grid");
-  var empty = document.getElementById("alerts-empty");
-  if (!list.length) { grid.innerHTML = ""; empty.style.display = "block"; return; }
-  empty.style.display = "none";
-
-  grid.innerHTML = list.map(function(a) {
-    var isReviewed = a.status === "reviewed";
-    var cardCls = isReviewed
-      ? (a.resolution === "legitimate" ? "alert-card legit reviewed" : "alert-card reviewed")
-      : "alert-card";
-
-    var statusBadge = isReviewed
-      ? (a.resolution === "legitimate"
-          ? '<span class="badge ok">Reviewed · legitimate</span>'
-          : '<span class="badge bad">Reviewed · anomaly</span>')
-      : '<span class="badge bad">Pending review</span>';
-
-    var actions = isReviewed ? "" :
-      '<div class="alert-actions">' +
-        '<button class="btn ok-outline sm" data-act="legit" data-id="' + a.transaction_id + '">' + window.ICONS.check + ' Legitimate</button>' +
-        '<button class="btn bad-outline sm" data-act="anomaly" data-id="' + a.transaction_id + '">' + window.ICONS.flag + ' Flag as Anomaly</button>' +
-      '</div>';
-
-    var amtFmt = a.amount_brl.toLocaleString("pt-BR", {minimumFractionDigits:2, maximumFractionDigits:2});
-    var meanFmt = a.mean_amount_brl.toLocaleString("pt-BR", {minimumFractionDigits:2, maximumFractionDigits:2});
-
-    return '<article class="' + cardCls + '" data-id="' + a.transaction_id + '">' +
-      '<div class="alert-head">' +
-        '<div class="alert-id" title="' + a.transaction_id + '">' +
-          fmtTrunc(a.transaction_id, 22) +
-          '<button class="copy" title="Copy ID" data-copy="' + a.transaction_id + '">' + window.ICONS.copy + '</button>' +
-        '</div>' +
-        statusBadge +
-      '</div>' +
-      '<div class="alert-stats">' +
-        '<div class="alert-stat"><span class="lbl">Amount</span><span class="val"><span class="currency">R$</span>' + amtFmt + '</span></div>' +
-        '<div class="alert-stat"><span class="lbl">12-wk mean</span><span class="val" style="color:var(--text-muted);"><span class="currency">R$</span>' + meanFmt + '</span></div>' +
-        '<div class="alert-stat dev"><span class="lbl">Deviation</span><span class="val">+' + a.deviation_pct.toFixed(1) + '%</span></div>' +
-      '</div>' +
-      '<div class="alert-meta">' +
-        '<span><span class="faint">Cost center</span> <span class="mono" style="color:var(--text);">' + a.cost_center + '</span></span>' +
-        '<span class="dot">·</span>' +
-        '<span><span class="faint">Detected</span> <span class="mono">' + fmtTs(a.detected_at) + '</span></span>' +
-        actions +
-      '</div>' +
-    '</article>';
-  }).join("");
-
-  grid.querySelectorAll("button[data-act]").forEach(function(btn) {
-    btn.addEventListener("click", function() { handleResolution(btn.dataset.id, btn.dataset.act, btn); });
-  });
-  grid.querySelectorAll("button[data-copy]").forEach(function(btn) {
-    btn.addEventListener("click", function() {
-      navigator.clipboard && navigator.clipboard.writeText(btn.dataset.copy).then(function() {
-        window.toast("Copied", "Transaction ID · " + fmtTrunc(btn.dataset.copy, 16), "ok");
-      }).catch(function() { window.toast("Copied", "(no clipboard permission)", "ok"); });
-    });
-  });
-}
-
-async function handleResolution(transaction_id, action, btn) {
-  var row = ALL.find(function(a) { return a.transaction_id === transaction_id; });
-  if (!row) return;
-  row.status = "reviewed";
-  row.resolution = action === "legit" ? "legitimate" : "anomaly";
-  btn.disabled = true;
-  btn.style.opacity = "0.6";
-
-  var ok = false;
-  try {
-    var res = await fetch("/api/post_resolutions", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        transaction_id: transaction_id,
-        resolution: row.resolution,
-        reviewed_by: "albuqr@github",
-        reviewed_at: new Date().toISOString(),
-      }),
-    });
-    ok = res.ok;
-  } catch (_) { ok = false; }
-
-  if (ok) {
-    window.toast(
-      "Resolution posted",
-      (row.resolution === "legitimate" ? "Marked legitimate" : "Flagged as anomaly") + " · " + fmtTrunc(transaction_id, 14),
-      row.resolution === "legitimate" ? "ok" : "bad"
-    );
-  } else {
-    window.toast("Resolution recorded (demo)", "POST /api/post_resolutions · UI state preserved", "ok");
-  }
-  refreshCounts();
-  render();
-}
-
-document.querySelectorAll("#status-tabs button").forEach(function(b) {
-  b.addEventListener("click", function() {
-    document.querySelectorAll("#status-tabs button").forEach(function(x) { x.classList.remove("on"); });
-    b.classList.add("on");
-    currentFilter = b.dataset.f;
-    render();
-  });
-});
-
-refreshCounts();
-render();
-</script>
+  <div class="table-scroll stack-on-small">
+    <table class="data alerts-table">
+      <thead><tr>
+        <th scope="col">{{ t('col_transaction') }}</th>
+        <th scope="col">{{ t('col_cost_center') }}</th>
+        <th scope="col" class="num">{{ t('col_amount') }}</th>
+        <th scope="col" class="num">{{ t('col_mean') }}</th>
+        <th scope="col" class="num">{{ t('col_deviation') }}</th>
+        <th scope="col" class="hide-medium">{{ t('col_detected') }}</th>
+        <th scope="col">{{ t('col_review') }}</th>
+      </tr></thead>
+      <tbody>
+        {% for a in data %}
+        <tr data-alert data-id="{{ a.transaction_id }}" data-server-status="{{ a.status }}">
+          <th scope="row" class="id" data-label="{{ t('col_transaction') }}">
+            <span class="id-wrap">
+              <span class="tx-id" title="{{ a.transaction_id }}">{{ a.transaction_id }}</span>
+              <button class="icon-btn" type="button" data-copy="{{ a.transaction_id }}" aria-label="{{ t('copy_id') }}" title="{{ t('copy_id') }}">{{ icon('copy', 14) }}</button>
+            </span>
+          </th>
+          <td data-label="{{ t('col_cost_center') }}">{{ a.cost_center | label }}</td>
+          <td class="num" data-label="{{ t('col_amount') }}">{{ a.amount_brl | money }}</td>
+          <td class="num" data-label="{{ t('col_mean') }}">{{ a.mean_amount_brl | money }}</td>
+          <td class="num" data-label="{{ t('col_deviation') }}"><strong>{{ a.deviation_pct | signed_pct }}</strong></td>
+          <td class="hide-medium" data-label="{{ t('col_detected') }}">{{ a.detected_at | datetime }}</td>
+          <td class="review-cell" data-label="{{ t('col_review') }}">
+            <span class="badge warn" data-state="pending">{{ icon('clock', 12) }}{{ t('pending') }}</span>
+            <span class="badge ok" data-state="legitimate" hidden>{{ icon('check', 12) }}{{ t('reviewed_legitimate') }}</span>
+            <span class="badge bad" data-state="confirmed_anomaly" hidden>{{ icon('flag', 12) }}{{ t('reviewed_anomaly') }}</span>
+            <span class="badge neutral" data-state="reviewed" hidden>{{ icon('check', 12) }}{{ t('reviewed') }}</span>
+            <span class="review-actions" data-review-actions>
+              <button class="btn small" type="button" data-review="legitimate">{{ t('legitimate') }}</button>
+              <button class="btn small" type="button" data-review="confirmed_anomaly">{{ t('confirm_anomaly') }}</button>
+            </span>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p class="empty" id="alerts-empty" hidden>{{ t('no_alerts_filter') }}</p>
+  {% else %}
+  <p class="empty">{{ t('no_alerts') }}</p>
+  {% endif %}
+</section>
 {% endblock %}
