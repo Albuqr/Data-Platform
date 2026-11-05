@@ -19,6 +19,79 @@
     setTimeout(function () { el.remove(); }, 4000);
   }
 
+  /* Intro screen: shown on a new visit or a reload, pulled up to reveal the system */
+  var intro = document.getElementById("intro");
+  if (document.documentElement.classList.contains("intro-open")) {
+    var hiddenWhileIntro = all(".skip, .header, .shell, .toasts");
+    var introReveal = document.getElementById("intro-reveal");
+    var dragStart = null;
+    var dragOffset = 0;
+    var dragTime = 0;
+    var revealing = false;
+
+    var finishIntro = function () {
+      document.documentElement.classList.remove("intro-open");
+      hiddenWhileIntro.forEach(function (el) { el.inert = false; });
+      document.removeEventListener("keydown", onIntroKey);
+      document.getElementById("main").focus({ preventScroll: true });
+    };
+
+    var revealSystem = function () {
+      if (revealing) { return; }
+      revealing = true;
+      try { sessionStorage.setItem("fdp.introSeen", "1"); } catch (e) { /* the intro simply returns next load */ }
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) { finishIntro(); return; }
+      intro.classList.remove("dragging");
+      intro.style.transform = "translateY(-100%)";
+      var finished = false;
+      var finishOnce = function () { if (!finished) { finished = true; finishIntro(); } };
+      intro.addEventListener("transitionend", finishOnce, { once: true });
+      setTimeout(finishOnce, 900);
+    };
+
+    function onIntroKey(event) {
+      if (["ArrowUp", "ArrowDown", "PageDown", "Escape", "Enter", " "].indexOf(event.key) !== -1) {
+        event.preventDefault();
+        revealSystem();
+      }
+    }
+
+    hiddenWhileIntro.forEach(function (el) { el.inert = true; });
+    intro.focus({ preventScroll: true });
+    introReveal.addEventListener("click", revealSystem);
+    document.addEventListener("keydown", onIntroKey);
+    intro.addEventListener("wheel", function (event) {
+      if (event.deltaY > 0) { revealSystem(); }
+    }, { passive: true });
+
+    intro.addEventListener("pointerdown", function (event) {
+      if (revealing) { return; }
+      dragStart = event.clientY;
+      dragOffset = 0;
+      dragTime = event.timeStamp;
+      intro.setPointerCapture(event.pointerId);
+      intro.classList.add("dragging");
+    });
+    intro.addEventListener("pointermove", function (event) {
+      if (dragStart === null) { return; }
+      dragOffset = Math.min(0, event.clientY - dragStart);
+      intro.style.transform = "translateY(" + dragOffset + "px)";
+    });
+    var endDrag = function (event) {
+      if (dragStart === null) { return; }
+      var speed = -dragOffset / Math.max(1, event.timeStamp - dragTime);
+      dragStart = null;
+      intro.classList.remove("dragging");
+      if (-dragOffset > window.innerHeight * 0.2 || (dragOffset < -24 && speed > 0.6)) {
+        revealSystem();
+      } else {
+        intro.style.transform = "";
+      }
+    };
+    intro.addEventListener("pointerup", endDrag);
+    intro.addEventListener("pointercancel", endDrag);
+  }
+
   /* Mobile navigation */
   var navToggle = document.getElementById("nav-toggle");
   var sidenav = document.getElementById("sidenav");

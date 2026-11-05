@@ -4,6 +4,8 @@ STRINGS = {
     "en": {
         "product": "Factory Data Platform",
         "portfolio_demo": "Portfolio demo",
+        "intro_sub": "A portfolio data platform for factory maintenance, budgets and Alerts.",
+        "intro_hint": "Pull up to reveal",
         "skip": "Skip to content",
         "menu": "Menu",
         "nav_label": "Main navigation",
@@ -185,6 +187,8 @@ STRINGS = {
     "pt": {
         "product": "Factory Data Platform",
         "portfolio_demo": "Demonstração de portfólio",
+        "intro_sub": "Uma plataforma de dados de portfólio para manutenção, orçamento e Alertas de fábrica.",
+        "intro_hint": "Puxe para cima para revelar",
         "skip": "Ir para o conteúdo",
         "menu": "Menu",
         "nav_label": "Navegação principal",

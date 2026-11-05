@@ -15,11 +15,29 @@
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%2314181d'/%3E%3Cpath d='M4 12V4h8M4 8h6' fill='none' stroke='%23fff' stroke-width='2'/%3E%3C/svg%3E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <script>
+    (function () {
+      try {
+        var nav = performance.getEntriesByType("navigation")[0];
+        if (nav && nav.type === "reload") { sessionStorage.removeItem("fdp.introSeen"); }
+        if (sessionStorage.getItem("fdp.introSeen") !== "1") { document.documentElement.classList.add("intro-open"); }
+      } catch (e) { /* no storage: skip the intro rather than show it on every page */ }
+    })();
+  </script>
   <script src="{{ url_for('static', filename='js/app.js') }}" defer></script>
 </head>
 <body>
+<div class="intro" id="intro" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="intro-title" aria-describedby="intro-sub">
+  <p class="intro-title" id="intro-title">{{ t('product') }}</p>
+  <p class="intro-sub" id="intro-sub">{{ t('intro_sub') }}</p>
+  <button class="intro-hint" type="button" id="intro-reveal">
+    <span>{{ t('intro_hint') }}</span>
+    {{ icon('arrow-down', 20) }}
+  </button>
+</div>
+
 <a class="skip" href="#main">{{ t('skip') }}</a>
 
 <header class="header">
